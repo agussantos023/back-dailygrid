@@ -1,0 +1,47 @@
+services:
+  db:
+    image: mariadb:11.4
+    container_name: mariadb_dailygrid
+    env_file: .env
+    environment:
+      - MARIADB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MARIADB_DATABASE=${DB_DATABASE}
+      - MARIADB_USER=${DB_USER}
+      - MARIADB_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    networks:
+      - dailygrid_network
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  back:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: back_dailygrid
+    volumes:
+      - .:/app
+      - /app/node_modules
+      # EL TÚNEL: Las fotos persisten en VPS/PC local aunque el contenedor muera
+      - ./uploads:/app/uploads
+    env_file: .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - dailygrid_network
+
+networks:
+  dailygrid_network:
+    driver: bridge
+
+volumes:
+  db_data:
