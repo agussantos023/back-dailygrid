@@ -1,7 +1,12 @@
 import jwt from 'jsonwebtoken';
+import type { UserPayload } from '../types/express';
+
+
 
 const ACCESS_SECRET = process.env.JWT_SECRET!;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
+
+
 
 export const generateTokens = (user: any) => {
   const accessToken = jwt.sign(
@@ -19,5 +24,7 @@ export const generateTokens = (user: any) => {
   return { accessToken, refreshToken };
 };
 
-export const verifyToken = (token: string, secret: 'access' | 'refresh') => jwt.verify(token, secret === 'access' ? ACCESS_SECRET : REFRESH_SECRET);
+export const verifyToken = (token: string, secret: 'access' | 'refresh'): UserPayload => {
+  return jwt.verify(token, secret === 'access' ? ACCESS_SECRET : REFRESH_SECRET) as UserPayload;
+};
 

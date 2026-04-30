@@ -1,5 +1,7 @@
 import { Router } from "express";
 import routerAuth from "./auth.route";
+import { isAuth } from "../middlewares/auth.middleware";
+import routerUser from "./user.route";
 
 const router = Router()
 
@@ -11,6 +13,8 @@ router.get('/health', (req, res) => {
 });
 
 router.use('/auth', routerAuth)
+
+router.use('/user', isAuth, routerUser)
 
 
 export default router;

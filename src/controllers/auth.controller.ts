@@ -13,17 +13,24 @@ export const googleLogin = async (req: Request, res: Response) => {
     const [user, created] = await User.findOrCreate({
       where: { google_id: googleUser.uid },
       defaults: {
-        email: googleUser.email,
-        username: googleUser.name,
+        google_id: googleUser.uid,
+        email: googleUser.email ?? '',
+        username: `user_${Math.floor(Math.random() * 1000000)}`,
+        avatar_url: googleUser.picture ?? null, // El modelo acepta string | null
+        ticket_balance: 0
       }
     });
 
     const tokens = generateTokens(user);
 
-    // GUARDAMOS EL REFRESH TOKEN EN LA DB
-    await user.update({ refresh_token: tokens.refreshToken });
+    const hashedRefreshToken = await Bun.password.hash(tokens.refreshToken);
+    await user.update({ refresh_token: hashedRefreshToken });
 
-    return res.json({ user, ...tokens, isNewUser: created });
+    return res.json({
+      user,
+      ...tokens,
+      isNewUser: created
+    });
 
   } catch (error) {
     console.log("Error en googleLogin:", error);
@@ -37,19 +44,27 @@ export const googleLogin = async (req: Request, res: Response) => {
 export const refreshToken = async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
 
-  if (!refreshToken) return res.status(400).json({ message: 'Refresh token requerido' });
+  if (!refreshToken) {
+    return res.status(400).json({ message: 'Refresh token requerido' });
+  }
 
   try {
     const decoded: any = verifyToken(refreshToken, 'refresh');
+
     const user = await User.findByPk(decoded.id);
 
-    // Verificamos que el token coincida con el de la DB
-    if (!user || user.get('refresh_token') !== refreshToken) {
-      return res.status(403).json({ message: 'Refresh token no válido o revocado' });
-    }
+    if (!user || !user.refresh_token) return res.status(403).json({ message: 'Refresh token no válido o revocado' });
+
+
+    const isValid = await Bun.password.verify(refreshToken, user.refresh_token);
+
+    if (!isValid) return res.status(403).json({ message: 'Refresh token no válido o revocado' });
+
 
     const tokens = generateTokens(user);
-    await user.update({ refresh_token: tokens.refreshToken });
+
+    const newHashedToken = await Bun.password.hash(tokens.refreshToken);
+    await user.update({ refresh_token: newHashedToken });
 
     return res.json({ ...tokens });
 
@@ -64,7 +79,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 
 export const logout = async (req: Request, res: Response) => {
 
-  const { id } = (req as any).user; // Vendrá del middleware isAuth
+  const id = req.user?.id;
 
   await User.update({ refresh_token: null }, { where: { id } });
 

@@ -9,7 +9,7 @@ export const isAuth = (req: Request, res: Response, next: NextFunction) => {
 
   try {
     const decoded = verifyToken(token, 'access');
-    (req as any).user = decoded; // Inyectamos los datos del usuario en la petición
+    req.user = decoded; // Inyectamos los datos del usuario en la petición
 
     next();
 
