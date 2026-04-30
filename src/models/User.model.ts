@@ -40,6 +40,10 @@ User.init(
     dark_theme: {
       type: DataTypes.STRING
     },
+    refresh_token: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    }
   },
   {
     sequelize: db,
