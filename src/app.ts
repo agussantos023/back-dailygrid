@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import router from './routes';
 
 const app = express();
 
@@ -10,8 +11,7 @@ app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-app.get('/health', (req, res) => {
-  res.send({ status: 'OK', timestamp: new Date() });
-});
+
+app.use('/api', router)
 
 export default app;
